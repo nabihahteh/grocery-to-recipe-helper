@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grocery-to-Recipe Helper</title>
+<style>
+  :root {
+    --bg: #f6f8f4;
+    --card: #ffffff;
+    --ink: #2e3a33;
+    --muted: #71816f;
+    --accent: #4a9d6b;
+    --accent-soft: #e3f2e8;
+    --accent-border: #bfe0cc;
+    --warn: #e8964f;
+    --warn-soft: #fdf1e4;
+    --line: #e4e9e2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    padding: 32px 16px 64px;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 { font-size: 1.7rem; font-weight: 700; letter-spacing: 0.3px; }
+  header p { color: var(--muted); margin-top: 6px; font-size: 0.98rem; }
+
+  section {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(46,58,51,0.05);
+  }
+  section h2 { font-size: 1.15rem; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  section h2 .num {
+    background: var(--accent-soft);
+    color: var(--accent);
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; flex-shrink: 0;
+  }
+  .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 16px; }
+
+  /* Checklist */
+  .checklist { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; margin-bottom: 16px; }
+  .checklist li {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #fbfcfa;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .checklist li:hover { border-color: var(--accent-border); }
+  .checklist li.selected { background: var(--accent-soft); border-color: var(--accent-border); }
+  .checklist input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+  .checklist label { cursor: pointer; flex: 1; user-select: none; }
+  .add-row { display: flex; gap: 10px; }
+  .add-row input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    background: #fbfcfa;
+  }
+  .add-row input:focus { outline: 2px solid var(--accent-border); border-color: var(--accent); }
+
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  button:hover { background: #3f8a5c; }
+
+  /* To-buy */
+  #tobuy-list { list-style: none; }
+  #tobuy-list li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 4px;
+    border-bottom: 1px dashed var(--line);
+  }
+  #tobuy-list li:last-child { border-bottom: none; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex-shrink: 0; }
+  .empty-note { color: var(--muted); font-style: italic; padding: 8px 4px; }
+  .badge {
+    display: inline-block;
+    background: var(--warn-soft);
+    color: #b06a24;
+    font-size: 0.75rem;
+    padding: 2px 9px;
+    border-radius: 999px;
+    margin-left: auto;
+  }
+
+  /* Menu */
+  .menu-btn-row { margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+  .menu-btn-row .hint { color: var(--muted); font-size: 0.88rem; }
+  #menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+  .day-card {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: #fbfcfa;
+  }
+  .day-card .day { font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 4px; }
+  .day-card .dish { font-size: 0.95rem; }
+  .day-card .uses { color: var(--muted); font-size: 0.8rem; margin-top: 4px; }
+  #menu-empty { color: var(--muted); font-style: italic; }
+  .credit { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 8px; }
+
+  /* Preferences */
+  .prefs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 5px; font-size: 0.88rem; color: var(--muted); }
+  .field input, .field select {
+    padding: 9px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    background: #fbfcfa;
+    color: var(--ink);
+    font-family: inherit;
+  }
+  .field input:focus, .field select:focus { outline: 2px solid var(--accent-border); border-color: var(--accent); }
+  .save-note { margin-top: 12px; color: var(--accent); font-size: 0.85rem; }
+  .reset-row { margin-top: 12px; }
+  .reset-row button { background: #eef1ee; color: var(--muted); font-weight: 500; padding: 8px 14px; }
+  .reset-row button:hover { background: #e0e5e0; color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🥬 Grocery-to-Recipe Helper</h1>
+    <p>Tick what you have, see what to buy, and get a simple one-week menu for the family.</p>
+  </header>
+
+  <!-- Section 1: Ingredient checklist -->
+  <section id="section-checklist">
+    <h2><span class="num">1</span> My Ingredient Checklist</h2>
+    <p class="sub">Tick the groceries you already have at home. Everything you tick is "selected".</p>
+    <ul class="checklist" id="checklist"></ul>
+    <div class="add-row">
+      <input type="text" id="new-ingredient" placeholder="Add a missing ingredient, e.g. Belacan" aria-label="New ingredient">
+      <button id="add-btn" type="button">+ Add Ingredient</button>
+    </div>
+  </section>
+
+  <!-- Section 2: To-buy list -->
+  <section id="section-tobuy">
+    <h2><span class="num">2</span> To-Buy List</h2>
+    <p class="sub">These are the groceries you haven't ticked yet — bring this list along when you shop.</p>
+    <ul id="tobuy-list"></ul>
+  </section>
+
+  <!-- Section 3: One-week menu -->
+  <section id="section-menu">
+    <h2><span class="num">3</span> One-Week Menu</h2>
+    <p class="sub">A simple 7-day plan made from your selected ingredients.</p>
+    <div class="menu-btn-row">
+      <button id="menu-btn" type="button">🍽️ Generate Weekly Menu</button>
+      <span class="hint">Tip: tick a few ingredients first for better suggestions.</span>
+    </div>
+    <div id="menu-empty">No menu yet — press the button above to get 7 days of easy meal ideas.</div>
+    <div id="menu-grid" hidden></div>
+  </section>
+
+  <!-- Preferences -->
+  <section id="section-prefs">
+    <h2><span class="num">👤</span> My Preferences</h2>
+    <p class="sub">Tell us about your household — saved automatically on this device so it's here next time.</p>
+    <div class="prefs-grid">
+      <label class="field"><span>Your name / family name</span>
+        <input type="text" id="pref-name" placeholder="e.g. Keluarga Aisyah">
+      </label>
+      <label class="field"><span>How many servings per meal</span>
+        <input type="number" id="pref-servings" min="1" max="20" value="4">
+      </label>
+      <label class="field"><span>Dietary preference</span>
+        <select id="pref-diet">
+          <option value="none">No restriction</option>
+          <option value="halal">Halal</option>
+          <option value="veg">Vegetarian</option>
+          <option value="nobeef">No beef</option>
+          <option value="noseafood">No seafood</option>
+        </select>
+      </label>
+      <label class="field"><span>Spice level</span>
+        <select id="pref-spice">
+          <option value="mild">Mild</option>
+          <option value="medium" selected>Medium</option>
+          <option value="pedas">Pedas! (Spicy)</option>
+        </select>
+      </label>
+    </div>
+    <p id="pref-status" class="save-note" hidden></p>
+    <div class="reset-row"><button id="reset-btn" type="button">Clear saved data &amp; start fresh</button></div>
+</section>
+
+  <p class="credit">Sample suggestions only — adjust to your family's taste. Nothing is saved between visits.</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORE_KEY = "gtrh-prefs-v1";
+
+  // Example starter ingredients, Malaysia-friendly
+  var defaultIngredients = [
+    { name: "Beras (Rice)", selected: true },
+    { name: "Ayam (Chicken)", selected: false },
+    { name: "Telur (Eggs)", selected: true },
+    { name: "Bawang Merah (Shallots)", selected: false },
+    { name: "Bawang Putih (Garlic)", selected: false },
+    { name: "Cili Padi", selected: false },
+    { name: "Sos Cili (Chili Sauce)", selected: false },
+    { name: "Kangkung (Water Spinach)", selected: false },
+    { name: "Taugeh (Bean Sprouts)", selected: false },
+    { name: "Kicap Soya (Soy Sauce)", selected: false },
+    { name: "Santan (Coconut Milk)", selected: false },
+    { name: "Ikan Kembung (Mackerel)", selected: false }
+  ];
+
+  var defaultPrefs = { name: "", servings: 4, diet: "none", spice: "medium" };
+
+  // Load saved state (ticks, added items, preferences) from this browser
+  var saved = null;
+  try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); } catch (e) { saved = null; }
+
+  var ingredients = (saved && Array.isArray(saved.ingredients) && saved.ingredients.length)
+    ? saved.ingredients : JSON.parse(JSON.stringify(defaultIngredients));
+  var prefs = Object.assign({}, defaultPrefs, (saved && saved.prefs) || {});
+
+  // Easy everyday meals; each dish lists 2-4 core ingredients it "uses"
+  var dishes = [
+    { name: "Nasi Goreng Kampung", uses: ["Beras (Rice)", "Telur (Eggs)", "Bawang Merah (Shallots)", "Cili Padi"] },
+    { name: "Ayam Masak Kicap", uses: ["Ayam (Chicken)", "Kicap Soya (Soy Sauce)", "Bawang Putih (Garlic)"] },
+    { name: "Telur Dadar Biasa + Nasi Panas", uses: ["Telur (Eggs)", "Beras (Rice)"] },
+    { name: "Sayur Goreng Kangkung", uses: ["Kangkung (Water Spinach)", "Bawang Putih (Garlic)", "Kicap Soya (Soy Sauce)"] },
+    { name: "Ikan Bakar Sos Cili", uses: ["Ikan Kembung (Mackerel)", "Sos Cili (Chili Sauce)", "Bawang Merah (Shallots)"] },
+    { name: "Taugeh Goreng Ayam", uses: ["Taugeh (Bean Sprouts)", "Ayam (Chicken)", "Bawang Putih (Garlic)"] },
+    { name: "Masak Lemak Sayur", uses: ["Santan (Coconut Milk)", "Cili Padi", "Kangkung (Water Spinach)"] },
+    { name: "Nasi Goreng Ayam", uses: ["Beras (Rice)", "Ayam (Chicken)", "Kicap Soya (Soy Sauce)", "Telur (Eggs)"] },
+    { name: "Sup Ayam Mudah", uses: ["Ayam (Chicken)", "Bawang Merah (Shallots)", "Bawang Putih (Garlic)"] },
+    { name: "Ikan Goreng + Air Asam", uses: ["Ikan Kembung (Mackerel)", "Cili Padi", "Bawang Merah (Shallots)"] },
+    { name: "Telur Masak Sos Cili", uses: ["Telur (Eggs)", "Sos Cili (Chili Sauce)", "Bawang Merah (Shallots)"] },
+    { name: "Nasi Lemak Simple", uses: ["Beras (Rice)", "Santan (Coconut Milk)", "Telur (Eggs)", "Cili Padi"] }
+  ];
+
+  var days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+  var checklistEl = document.getElementById("checklist");
+  var tobuyEl = document.getElementById("tobuy-list");
+  var menuGrid = document.getElementById("menu-grid");
+  var menuEmpty = document.getElementById("menu-empty");
+  var newInput = document.getElementById("new-ingredient");
+  var prefStatus = document.getElementById("pref-status");
+  var prefStatusTimer = null;
+
+  // --- Persistence -------------------------------------------------------
+  function persist() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({ ingredients: ingredients, prefs: prefs }));
+    } catch (e) { /* storage unavailable (e.g. private mode) — app still works this session */ }
+  }
+
+  function showSavedNote(text) {
+    prefStatus.textContent = text;
+    prefStatus.hidden = false;
+    clearTimeout(prefStatusTimer);
+    prefStatusTimer = setTimeout(function () { prefStatus.hidden = true; }, 2500);
+  }
+
+  function resetAll() {
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    ingredients = JSON.parse(JSON.stringify(defaultIngredients));
+    prefs = Object.assign({}, defaultPrefs);
+    renderAll();
+    loadPrefsForm();
+    showSavedNote("Cleared — everything is back to the example list.");
+  }
+
+  function findByNodename(name) {
+    return ingredients.some(function (i) { return i.name.toLowerCase() === name.toLowerCase(); });
+  }
+
+  function renderChecklist() {
+    checklistEl.innerHTML = "";
+    ingredients.forEach(function (item, idx) {
+      var li = document.createElement("li");
+      if (item.selected) li.classList.add("selected");
+
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = item.selected;
+      cb.id = "ing-" + idx;
+      cb.addEventListener("change", function () {
+        item.selected = cb.checked;
+        renderAll();
+        persist();
+      });
+
+      var label = document.createElement("label");
+      label.htmlFor = "ing-" + idx;
+      label.textContent = item.name;
+
+      li.appendChild(cb);
+      li.appendChild(label);
+      checklistEl.appendChild(li);
+    });
+  }
+
+  function renderToBuy() {
+    tobuyEl.innerHTML = "";
+    var toBuy = ingredients.filter(function (i) { return !i.selected; });
+    if (toBuy.length === 0) {
+      var li = document.createElement("li");
+      li.className = "empty-note";
+      li.textContent = "Great news — everything is ticked! Nothing to buy right now. 🎉";
+      tobuyEl.appendChild(li);
+      return;
+    }
+    toBuy.forEach(function (item) {
+      var li = document.createElement("li");
+      var dot = document.createElement("span");
+      dot.className = "dot";
+      var span = document.createElement("span");
+      span.textContent = item.name;
+      var badge = document.createElement("span");
+      badge.className = "badge";
+      badge.textContent = "need to buy";
+      li.appendChild(dot);
+      li.appendChild(span);
+      li.appendChild(badge);
+      tobuyEl.appendChild(li);
+    });
+  }
+
+  function renderAll() {
+    renderChecklist();
+    renderToBuy();
+  }
+
+  // Feature 2: add missing ingredient
+  function addIngredient() {
+    var name = newInput.value.trim();
+    if (!name) { newInput.focus(); return; }
+    if (findByNodename(name)) {
+      newInput.value = "";
+      newInput.placeholder = '"' + name + '" is already on the list';
+      newInput.focus();
+      return;
+    }
+    ingredients.push({ name: name, selected: false });
+    newInput.value = "";
+    newInput.placeholder = "Add a missing ingredient, e.g. Belacan";
+    renderAll();
+    persist();
+    newInput.focus();
+  }
+
+  // --- Preferences form ----------------------------------------------------
+  function loadPrefsForm() {
+    document.getElementById("pref-name").value = prefs.name || "";
+    document.getElementById("pref-servings").value = prefs.servings || 4;
+    document.getElementById("pref-diet").value = prefs.diet || "none";
+    document.getElementById("pref-spice").value = prefs.spice || "medium";
+  }
+
+  function savePrefsFromForm() {
+    prefs.name = document.getElementById("pref-name").value.trim();
+    var s = parseInt(document.getElementById("pref-servings").value, 10);
+    prefs.servings = (s >= 1 && s <= 20) ? s : 4;
+    prefs.diet = document.getElementById("pref-diet").value;
+    prefs.spice = document.getElementById("pref-spice").value;
+    persist();
+    showSavedNote("Preferences saved ✓ (on this device)");
+  }
+
+  ["pref-name", "pref-servings", "pref-diet", "pref-spice"].forEach(function (id) {
+    document.getElementById(id).addEventListener("change", savePrefsFromForm);
+  });
+  document.getElementById("reset-btn").addEventListener("click", resetAll);
+
+  document.getElementById("add-btn").addEventListener("click", addIngredient);
+  newInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") addIngredient();
+  });
+
+  // Feature 3: generate weekly menu
+  document.getElementById("menu-btn").addEventListener("click", function () {
+    var selected = ingredients.filter(function (i) { return i.selected; }).map(function (i) { return i.name; });
+
+    // Rank dishes: prefer dishes whose core ingredients are mostly selected
+    var scored = dishes.map(function (d) {
+      var matches = d.uses.filter(function (u) { return selected.indexOf(u) !== -1; });
+      return { dish: d, matchCount: matches.length };
+    });
+    scored.sort(function (a, b) {
+      if (b.matchCount !== a.matchCount) return b.matchCount - a.matchCount;
+      return Math.random() - 0.5;
+    });
+
+    // Pick 7 different dishes, rotating through best-matching ones
+    var pool = scored.slice();
+    var plan = [];
+    for (var d = 0; d < days.length; d++) {
+      // take from top half with some randomness so refresh gives variety
+      var pickIndex = Math.floor(Math.random() * Math.min(4, pool.length));
+      var entry = pool.splice(pickIndex, 1)[0];
+      plan.push({ day: days[d], dish: entry.dish });
+    }
+
+    menuEmpty.hidden = true;
+    menuGrid.hidden = false;
+    menuGrid.innerHTML = "";
+    plan.forEach(function (p) {
+      var card = document.createElement("div");
+      card.className = "day-card";
+      var day = document.createElement("div");
+      day.className = "day";
+      day.textContent = p.day;
+      var dish = document.createElement("div");
+      dish.className = "dish";
+      dish.textContent = p.dish.name;
+      var uses = document.createElement("div");
+      uses.className = "uses";
+      uses.textContent = "Uses: " + p.dish.uses.join(", ");
+      card.appendChild(day);
+      card.appendChild(dish);
+      card.appendChild(uses);
+      menuGrid.appendChild(card);
+    });
+  });
+
+  // Initial render — app never opens empty; load any saved preferences
+  renderAll();
+  loadPrefsForm();
+})();
+</script>
+</body>
+</html>
